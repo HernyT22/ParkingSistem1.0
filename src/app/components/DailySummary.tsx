@@ -4,9 +4,16 @@ import { Card, CardContent } from "./ui/card";
 interface DailySummaryProps {
   vehiculosIngresados: number;
   dineroCobrado: number;
+  efectivo: number;
+  transferencia: number;
 }
 
-export function DailySummary({ vehiculosIngresados, dineroCobrado }: DailySummaryProps) {
+export function DailySummary({
+  vehiculosIngresados,
+  dineroCobrado,
+  efectivo,
+  transferencia,
+}: DailySummaryProps) {
   return (
     <div className="grid grid-cols-2 gap-3">
       <Card className="bg-blue-50 border-blue-200">
@@ -28,6 +35,12 @@ export function DailySummary({ vehiculosIngresados, dineroCobrado }: DailySummar
           </div>
           <p className="text-2xl font-bold text-green-600">${dineroCobrado}</p>
           <p className="text-xs text-gray-500 mt-1">Total del día</p>
+          <p className="text-xs text-gray-600 mt-1">
+            Efectivo: <span className="font-semibold">${efectivo}</span>
+          </p>
+          <p className="text-xs text-gray-600">
+            Transferencia: <span className="font-semibold">${transferencia}</span>
+          </p>
         </CardContent>
       </Card>
     </div>

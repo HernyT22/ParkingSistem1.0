@@ -6,6 +6,7 @@ interface HistoryEntry {
   horaIngreso: string;
   horaEgreso: string;
   monto: number;
+   medioPago: string;
 }
 
 interface VehicleHistoryProps {
@@ -44,6 +45,10 @@ export function VehicleHistory({ history }: VehicleHistoryProps) {
                 <p className="text-gray-500">Egreso</p>
                 <p className="font-medium">{entry.horaEgreso}</p>
               </div>
+            </div>
+            <div className="mt-2 text-xs text-gray-500 flex justify-between">
+              <span>Medio de pago:</span>
+              <span className="font-medium text-gray-700">{entry.medioPago}</span>
             </div>
           </CardContent>
         </Card>

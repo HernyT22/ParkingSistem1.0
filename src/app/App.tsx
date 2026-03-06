@@ -5,7 +5,7 @@ import { VehicleCard } from "./components/VehicleCard";
 import { DailySummary } from "./components/DailySummary";
 import { AddVehicleDialog } from "./components/AddVehicleDialog";
 import { VehicleHistory } from "./components/VehicleHistory";
-import { Car, History, BarChart3 } from "lucide-react";
+import { Car, History, BarChart3, Wallet, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "./components/ui/sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./components/ui/dialog";
@@ -21,6 +21,7 @@ import {
   calculateSummary,
   shouldResetToday,
   markResetDone,
+  PaymentMethod,
 } from "./utils/parkingLogic";
 
 interface HistoryEntryUi {
@@ -29,6 +30,7 @@ interface HistoryEntryUi {
   horaIngreso: string;
   horaEgreso: string;
   monto: number;
+  medioPago: string;
 }
 
 function formatTime(timestamp: number | null): string {
@@ -71,6 +73,8 @@ function App() {
   const summary = calculateSummary(state);
   const vehiculosIngresados = summary.totalVehicles;
   const dineroCobrado = summary.totalCharged;
+  const efectivoTotal = summary.cashTotal ?? 0;
+  const transferenciaTotal = summary.transferTotal ?? 0;
 
   const [vehicleToCheckout, setVehicleToCheckout] = useState<BusinessVehicle | null>(null);
   const [previewCheckout, setPreviewCheckout] = useState<BusinessVehicle | null>(null);
@@ -78,6 +82,7 @@ function App() {
   const [exitTimeInput, setExitTimeInput] = useState<string>("");
   const [vehicleToCancel, setVehicleToCancel] = useState<BusinessVehicle | null>(null);
   const [clearHistoryOpen, setClearHistoryOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
 
   const handleAddVehicle = (patente: string, tipo: string, horaIngreso?: string | null) => {
     if (!patente || !tipo) return;
@@ -105,16 +110,21 @@ function App() {
   const confirmCheckout = () => {
     if (!vehicleToCheckout) return;
 
+    const finalized: BusinessVehicle = {
+      ...vehicleToCheckout,
+      paymentMethod,
+    };
+
     setState((prev) => ({
       activeVehicles: prev.activeVehicles.filter((v) => v.id !== vehicleToCheckout.id),
-      history: [vehicleToCheckout, ...prev.history],
+      history: [finalized, ...prev.history],
     }));
 
     setVehicleToCheckout(null);
     setPreviewCheckout(null);
 
-    if (vehicleToCheckout.amountCharged != null) {
-      toast.success(`Egreso registrado - Total: $${vehicleToCheckout.amountCharged}`);
+    if (finalized.amountCharged != null) {
+      toast.success(`Egreso registrado - Total: $${finalized.amountCharged}`);
     } else {
       toast.success("Egreso registrado");
     }
@@ -152,6 +162,12 @@ function App() {
     horaIngreso: formatTime(v.entryTimestamp),
     horaEgreso: formatTime(v.exitTimestamp),
     monto: v.amountCharged ?? 0,
+    medioPago:
+      v.paymentMethod === "cash"
+        ? "Efectivo"
+        : v.paymentMethod === "transfer"
+        ? "Transferencia bancaria"
+        : "-",
   }));
 
   return (
@@ -169,6 +185,8 @@ function App() {
         <DailySummary
           vehiculosIngresados={vehiculosIngresados}
           dineroCobrado={dineroCobrado}
+          efectivo={efectivoTotal}
+          transferencia={transferenciaTotal}
         />
       </div>
 
@@ -303,6 +321,7 @@ function App() {
                     setVehicleToCheckout(checkedOut);
                     setVehicleForExitTime(null);
                     setExitTimeInput("");
+                    setPaymentMethod("cash");
                   }}
                 >
                   Continuar
@@ -351,6 +370,37 @@ function App() {
                   ${previewCheckout.amountCharged ?? 0}
                 </span>
               </p>
+              <div className="pt-1 space-y-1">
+                <p className="text-xs text-gray-500">Medio de pago</p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={`flex-1 text-xs py-2 flex items-center justify-center gap-1 border ${
+                      paymentMethod === "cash"
+                        ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                        : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                    }`}
+                    onClick={() => setPaymentMethod("cash")}
+                  >
+                    <Wallet className="h-3 w-3" />
+                    Efectivo
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={`flex-1 text-xs py-2 flex items-center justify-center gap-1 border ${
+                      paymentMethod === "transfer"
+                        ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                        : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                    }`}
+                    onClick={() => setPaymentMethod("transfer")}
+                  >
+                    <CreditCard className="h-3 w-3" />
+                    Transferencia bancaria
+                  </Button>
+                </div>
+              </div>
               <div className="flex gap-2 pt-4">
                 <Button
                   variant="outline"

@@ -1,5 +1,6 @@
 // src/app/utils/parkingLogic.ts
 export type VehicleType = "Car/SUV" | "Pickup" | "Motorcycle";
+export type PaymentMethod = "cash" | "transfer";
 
 export interface Vehicle {
   id: string;
@@ -10,6 +11,7 @@ export interface Vehicle {
   totalMinutes: number | null;
   hoursCharged: number | null;
   amountCharged: number | null;
+  paymentMethod?: PaymentMethod | null;
 }
 
 export interface ParkingState {
@@ -105,6 +107,7 @@ export function createVehicle(
     totalMinutes: null,
     hoursCharged: null,
     amountCharged: null,
+    paymentMethod: null,
   };
 }
 
@@ -138,13 +141,26 @@ export function calculateSummary(state: ParkingState) {
   const totalVehicles =
     state.activeVehicles.length + state.history.length;
 
-  const totalCharged = state.history.reduce((sum, v) => {
-    return sum + (v.amountCharged || 0);
-  }, 0);
+  let totalCharged = 0;
+  let cashTotal = 0;
+  let transferTotal = 0;
+
+  for (const v of state.history) {
+    const amount = v.amountCharged || 0;
+    totalCharged += amount;
+
+    if (v.paymentMethod === "cash") {
+      cashTotal += amount;
+    } else if (v.paymentMethod === "transfer") {
+      transferTotal += amount;
+    }
+  }
 
   return {
     totalVehicles,
     totalCharged,
+    cashTotal,
+    transferTotal,
   };
 }
 
