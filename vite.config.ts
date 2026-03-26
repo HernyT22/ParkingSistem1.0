@@ -21,8 +21,8 @@ export default defineConfig({
         background_color: '#f9fafb',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
+        scope: '/ParkingSistem1.0/',   
+        start_url: '/ParkingSistem1.0/', 
         icons: [
           {
             src: 'icons/icon-192.png',
