@@ -1,51 +1,5 @@
-// src/app/utils/parkingLogic.ts
-export type VehicleType = "Car/SUV" | "Pickup" | "Motorcycle";
-export type PaymentMethod = "cash" | "transfer";
-
-export interface Vehicle {
-  id: string;
-  originalPlate: string;
-  type: VehicleType;
-  entryTimestamp: number;
-  exitTimestamp: number | null;
-  totalMinutes: number | null;
-  hoursCharged: number | null;
-  amountCharged: number | null;
-  paymentMethod?: PaymentMethod | null;
-}
-
-export interface ParkingState {
-  activeVehicles: Vehicle[];
-  history: Vehicle[];
-}
-
-export const rates: Record<VehicleType, number> = {
-  "Car/SUV": 2500,
-  Pickup: 3000,
-  Motorcycle: 1000,
-};
-
-export function loadInitialState(): ParkingState {
-  if (typeof window === "undefined") {
-    return { activeVehicles: [], history: [] };
-  }
-
-  const active =
-    JSON.parse(localStorage.getItem("activeVehicles") || "[]") ?? [];
-  const hist =
-    JSON.parse(localStorage.getItem("history") || "[]") ?? [];
-
-  return {
-    activeVehicles: active,
-    history: hist,
-  };
-}
-
-export function persistState(state: ParkingState) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem("activeVehicles", JSON.stringify(state.activeVehicles));
-  localStorage.setItem("history", JSON.stringify(state.history));
-}
+import type { ParkingState, Vehicle, VehicleType } from "../models/parking";
+import { rates } from "../models/parking";
 
 function getTodayWithTime(time: string | null): number {
   if (!time) {
@@ -89,7 +43,6 @@ export function createVehicle(
 ): Vehicle {
   const entryTimestamp = getTodayWithTime(entryTime ?? null);
 
-  // lógica de sufijos (123, 123(2), etc.)
   const samePlates = existing.filter((v) =>
     v.originalPlate.startsWith(plate)
   );
@@ -162,16 +115,4 @@ export function calculateSummary(state: ParkingState) {
     cashTotal,
     transferTotal,
   };
-}
-
-export function shouldResetToday(): boolean {
-  if (typeof window === "undefined") return false;
-  const today = new Date().toLocaleDateString();
-  const lastReset = localStorage.getItem("lastResetDate");
-  return lastReset !== today;
-}
-
-export function markResetDone() {
-  if (typeof window === "undefined") return;
-  localStorage.setItem("lastResetDate", new Date().toLocaleDateString());
 }

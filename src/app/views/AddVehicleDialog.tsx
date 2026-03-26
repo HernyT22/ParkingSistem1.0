@@ -1,7 +1,7 @@
 import React from "react";
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "../components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,16 +9,21 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+} from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "../components/ui/select";
+import {
+  DEFAULT_VEHICLE_TYPE,
+  getAddVehicleFormResetValues,
+  parseAddVehicleSubmit,
+} from "../presenters/addVehiclePresenter";
 
 interface AddVehicleDialogProps {
   onAdd: (patente: string, tipo: string, horaIngreso?: string | null) => void;
@@ -26,17 +31,19 @@ interface AddVehicleDialogProps {
 
 export function AddVehicleDialog({ onAdd }: AddVehicleDialogProps) {
   const [patente, setPatente] = useState("");
-  const [tipo, setTipo] = useState("Car/SUV");
+  const [tipo, setTipo] = useState(DEFAULT_VEHICLE_TYPE);
   const [open, setOpen] = useState(false);
   const [horaIngreso, setHoraIngreso] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (patente.trim()) {
-      onAdd(patente, tipo, horaIngreso || null);
-      setPatente("");
-      setTipo("Car/SUV");
-      setHoraIngreso("");
+    const parsed = parseAddVehicleSubmit(patente, tipo, horaIngreso);
+    if (parsed) {
+      onAdd(parsed.patente, parsed.tipo, parsed.horaIngreso);
+      const reset = getAddVehicleFormResetValues();
+      setPatente(reset.patente);
+      setTipo(reset.tipo);
+      setHoraIngreso(reset.horaIngreso);
       setOpen(false);
     }
   };

@@ -1,6 +1,6 @@
 import { Car, ArrowRight, X } from "lucide-react";
-import { Button } from "./ui/button";
-import { Card, CardContent } from "./ui/card";
+import { Button } from "../components/ui/button";
+import { Card, CardContent } from "../components/ui/card";
 
 interface VehicleCardProps {
   patente: string;
@@ -29,7 +29,7 @@ export function VehicleCard({ patente, hora, tipo, onCheckout, onCancel }: Vehic
             <p className="font-medium">{hora}</p>
           </div>
         </div>
-        
+
         <div className="flex gap-2 mt-3">
           <Button
             onClick={onCheckout}

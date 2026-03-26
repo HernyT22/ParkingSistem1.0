@@ -1,5 +1,5 @@
 import { Car, DollarSign } from "lucide-react";
-import { Card, CardContent } from "./ui/card";
+import { Card, CardContent } from "../components/ui/card";
 
 interface DailySummaryProps {
   vehiculosIngresados: number;
@@ -26,7 +26,7 @@ export function DailySummary({
           <p className="text-xs text-gray-500 mt-1">Ingresados hoy</p>
         </CardContent>
       </Card>
-      
+
       <Card className="bg-green-50 border-green-200">
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-2">

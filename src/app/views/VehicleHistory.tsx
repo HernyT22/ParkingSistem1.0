@@ -1,16 +1,8 @@
-import { Card, CardContent } from "./ui/card";
-
-interface HistoryEntry {
-  patente: string;
-  tipo: string;
-  horaIngreso: string;
-  horaEgreso: string;
-  monto: number;
-   medioPago: string;
-}
+import { Card, CardContent } from "../components/ui/card";
+import type { HistoryEntryUi } from "../models/parkingUi";
 
 interface VehicleHistoryProps {
-  history: HistoryEntry[];
+  history: HistoryEntryUi[];
 }
 
 export function VehicleHistory({ history }: VehicleHistoryProps) {
