@@ -1,21 +1,21 @@
 import { useEffect } from "react"
-import { supabase } from "@/lib/supabaseClient"
+
 import { useNavigate } from "react-router"
 
 export default function Callback() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const handleAuth = async () => {
-      const { data } = await supabase.auth.getSession()
-      if (data.session) {
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
         navigate("/")
+      } else if (event === "PASSWORD_RECOVERY") {
+        navigate("/reset-password")
       } else {
         navigate("/login")
       }
-    }
-    handleAuth()
+    })
   }, [navigate])
 
-  return <p>Procesando...</p>
+  return <p>Procesando autenticación...</p>
 }
