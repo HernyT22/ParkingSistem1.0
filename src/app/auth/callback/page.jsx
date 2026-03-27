@@ -1,25 +1,21 @@
-"use client";
-
-import { useEffect } from "react";
-import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
+import { useEffect } from "react"
+import { supabase } from "@/lib/supabaseClient"
+import { useNavigate } from "react-router"
 
 export default function Callback() {
-  const router = useRouter();
+  const navigate = useNavigate()
 
   useEffect(() => {
     const handleAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-
+      const { data } = await supabase.auth.getSession()
       if (data.session) {
-        router.push("/"); // o dashboard
+        navigate("/")
       } else {
-        router.push("/login");
+        navigate("/login")
       }
-    };
+    }
+    handleAuth()
+  }, [navigate])
 
-    handleAuth();
-  }, [router]);
-
-  return <p>Procesando...</p>;
+  return <p>Procesando...</p>
 }
