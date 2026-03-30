@@ -18,6 +18,7 @@ function App() {
   const p = useParkingAppPresenter()
   const [logoutOpen, setLogoutOpen] = useState(false)
 
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <Toaster />

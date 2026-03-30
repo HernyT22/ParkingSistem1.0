@@ -9,26 +9,28 @@ import {
 } from "../services/parkingLogic";
 import {
   loadInitialState,
-  persistState,
-  shouldResetToday,
-  markResetDone,
+  addVehicle,
+  updateVehicle,
+  deleteVehicle,
 } from "../services/parkingStorage";
 
 export function useParkingAppPresenter() {
-  const [state, setState] = useState(() => {
-    const initial = loadInitialState();
-    if (shouldResetToday()) {
-      markResetDone();
-      return { activeVehicles: [], history: [] };
-    }
-    return initial;
+  const [state, setState] = useState<{ activeVehicles: Vehicle[]; history: Vehicle[] }>({
+    activeVehicles: [],
+    history: [],
   });
 
-  const { activeVehicles, history } = state;
-
+  // Carga inicial desde localStorage (sync con Supabase en background)
   useEffect(() => {
-    persistState(state);
-  }, [state]);
+    const fetchState = async () => {
+      const initial = await loadInitialState();
+      setState(initial);
+    };
+
+    fetchState();
+  }, []);
+
+  const { activeVehicles, history } = state;
 
   const summary = calculateSummary(state);
   const vehiculosIngresados = summary.totalVehicles;
@@ -54,12 +56,20 @@ export function useParkingAppPresenter() {
       horaIngreso ?? null
     );
 
-    setState((prev) => ({
-      ...prev,
-      activeVehicles: [...prev.activeVehicles, newVehicle],
-    }));
+    try {
+      // Guarda primero en localStorage (UX instantánea)
+      addVehicle(newVehicle);
 
-    toast.success(`Vehículo ${patente} ingresado correctamente`);
+      // Actualiza React state
+      setState((prev) => ({
+        ...prev,
+        activeVehicles: [...prev.activeVehicles, newVehicle],
+      }));
+
+      toast.success(`Vehículo ${patente} ingresado correctamente`);
+    } catch {
+      toast.error(`Error al ingresar el vehículo ${patente}`);
+    }
   };
 
   const openCheckoutDialog = (vehicle: Vehicle) => {
@@ -67,7 +77,7 @@ export function useParkingAppPresenter() {
     setExitTimeInput("");
   };
 
-  const confirmCheckout = () => {
+  const confirmCheckout = async () => {
     if (!vehicleToCheckout) return;
 
     const finalized: Vehicle = {
@@ -75,18 +85,24 @@ export function useParkingAppPresenter() {
       paymentMethod,
     };
 
-    setState((prev) => ({
-      activeVehicles: prev.activeVehicles.filter((v) => v.id !== vehicleToCheckout.id),
-      history: [finalized, ...prev.history],
-    }));
+    try {
+      updateVehicle(finalized);
 
-    setVehicleToCheckout(null);
-    setPreviewCheckout(null);
+      setState((prev) => ({
+        activeVehicles: prev.activeVehicles.filter((v) => v.id !== vehicleToCheckout.id),
+        history: [finalized, ...prev.history],
+      }));
 
-    if (finalized.amountCharged != null) {
-      toast.success(`Egreso registrado - Total: $${finalized.amountCharged}`);
-    } else {
-      toast.success("Egreso registrado");
+      setVehicleToCheckout(null);
+      setPreviewCheckout(null);
+
+      if (finalized.amountCharged != null) {
+        toast.success(`Egreso registrado - Total: $${finalized.amountCharged}`);
+      } else {
+        toast.success("Egreso registrado");
+      }
+    } catch {
+      toast.error("Error al registrar el egreso");
     }
   };
 
@@ -99,17 +115,24 @@ export function useParkingAppPresenter() {
     setVehicleToCancel(vehicle);
   };
 
-  const confirmCancel = () => {
+  const confirmCancel = async () => {
     if (!vehicleToCancel) return;
 
     const vehicle = vehicleToCancel;
 
-    setState((prev) => ({
-      ...prev,
-      activeVehicles: prev.activeVehicles.filter((v) => v.id !== vehicle.id),
-    }));
-    setVehicleToCancel(null);
-    toast.info(`Vehículo ${vehicle.originalPlate} cancelado`);
+    try {
+      deleteVehicle(vehicle.id);
+
+      setState((prev) => ({
+        ...prev,
+        activeVehicles: prev.activeVehicles.filter((v) => v.id !== vehicle.id),
+      }));
+
+      setVehicleToCancel(null);
+      toast.info(`Vehículo ${vehicle.originalPlate} cancelado`);
+    } catch {
+      toast.error("Error al cancelar el vehículo");
+    }
   };
 
   const cancelCancelDialog = () => {
@@ -120,7 +143,9 @@ export function useParkingAppPresenter() {
 
   const onContinueExitTime = () => {
     if (!vehicleForExitTime) return;
+
     const checkedOut = checkoutVehicle(vehicleForExitTime, exitTimeInput || null);
+
     setPreviewCheckout(checkedOut);
     setVehicleToCheckout(checkedOut);
     setVehicleForExitTime(null);
@@ -128,13 +153,20 @@ export function useParkingAppPresenter() {
     setPaymentMethod("cash");
   };
 
-  const onClearHistoryConfirm = () => {
-    setState((prev) => ({
-      ...prev,
-      history: [],
-    }));
-    setClearHistoryOpen(false);
-    toast.info("Historial borrado correctamente");
+  const onClearHistoryConfirm = async () => {
+    try {
+      history.forEach((v) => deleteVehicle(v.id));
+
+      setState((prev) => ({
+        ...prev,
+        history: [],
+      }));
+
+      setClearHistoryOpen(false);
+      toast.info("Historial borrado correctamente");
+    } catch {
+      toast.error("Error al borrar el historial");
+    }
   };
 
   const closeExitTimeDialog = () => {
