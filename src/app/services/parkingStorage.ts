@@ -11,11 +11,8 @@ function loadLocalState(): ParkingState {
     return { activeVehicles: [], history: [] }
   }
 
-  const active =
-    JSON.parse(localStorage.getItem(ACTIVE_KEY) || "[]") ?? []
-
-  const history =
-    JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]") ?? []
+  const active = JSON.parse(localStorage.getItem(ACTIVE_KEY) || "[]") ?? []
+  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]") ?? []
 
   return {
     activeVehicles: active,
@@ -44,38 +41,68 @@ function mapVehicle(v: any): Vehicle {
   }
 }
 
+/* ---------------- MERGE LOCAL + REMOTE ---------------- */
+
+function mergeStates(local: ParkingState, remote: ParkingState): ParkingState {
+  const mergedActive = [
+    ...local.activeVehicles,
+    ...remote.activeVehicles.filter(
+      (r) => !local.activeVehicles.some((l) => l.id === r.id)
+    ),
+  ]
+
+  const mergedHistory = [
+    ...local.history,
+    ...remote.history.filter(
+      (r) => !local.history.some((l) => l.id === r.id)
+    ),
+  ]
+
+  return {
+    activeVehicles: mergedActive,
+    history: mergedHistory,
+  }
+}
+
 /* ---------------- INITIAL LOAD ---------------- */
 
 export async function loadInitialState(): Promise<ParkingState> {
 
-  // 1️⃣ primero mostrar lo local
   const local = loadLocalState()
 
-  // 2️⃣ luego sincronizar con Supabase en segundo plano
+  // sync remoto en background
   syncFromSupabase()
 
   return local
 }
 
-/* ---------------- SYNC REMOTO → LOCAL ---------------- */
+/* ---------------- SYNC REMOTO ---------------- */
 
 export async function syncFromSupabase() {
   try {
-    const { data, error } = await supabase
-      .from("vehicles")
-      .select("*")
-      .order("entry_timestamp", { ascending: false })
+    const { data: { user } } = await supabase.auth.getUser()
+
+const { data, error } = await supabase
+  .from("vehicles")
+  .select("*")
+  .eq("user_id", user?.id)
+  .order("entry_timestamp", { ascending: false })
 
     if (error || !data) return
 
     const mapped: Vehicle[] = data.map(mapVehicle)
 
-    const newState: ParkingState = {
+    const remoteState: ParkingState = {
       activeVehicles: mapped.filter((v) => v.exitTimestamp === null),
       history: mapped.filter((v) => v.exitTimestamp !== null),
     }
 
-    saveLocalState(newState)
+    const local = loadLocalState()
+
+    const merged = mergeStates(local, remoteState)
+
+    saveLocalState(merged)
+
   } catch (err) {
     console.error("Supabase sync error", err)
   }
@@ -85,77 +112,70 @@ export async function syncFromSupabase() {
 
 export async function addVehicle(vehicle: Vehicle) {
 
-  const state = loadLocalState()
+  const local = loadLocalState()
 
   const newState: ParkingState = {
-    ...state,
-    activeVehicles: [...state.activeVehicles, vehicle],
+    ...local,
+    activeVehicles: [...local.activeVehicles, vehicle],
   }
 
-  // UX instantánea
   saveLocalState(newState)
 
-  // sync remoto async
-  try {
-    await supabase.from("vehicles").insert({
-      original_plate: vehicle.originalPlate,
-      type: vehicle.type,
-      entry_timestamp: vehicle.entryTimestamp,
-      is_active: true,
-    })
-  } catch (err) {
-    console.error("Insert sync error", err)
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { error } = await supabase.from("vehicles").insert({
+    id: vehicle.id,
+    user_id: user?.id,
+    original_plate: vehicle.originalPlate,
+    type: vehicle.type,
+    entry_timestamp: vehicle.entryTimestamp,
+    is_active: true,
+  })
+
+  if (error) {
+    console.error("SUPABASE INSERT ERROR:", error)
   }
 }
-
 /* ---------------- UPDATE VEHICLE ---------------- */
 
-export async function updateVehicle(vehicle: Vehicle) {
+export function updateVehicle(vehicle: Vehicle) {
 
-  const state = loadLocalState()
+  const local = loadLocalState()
 
-  const active = state.activeVehicles.filter((v) => v.id !== vehicle.id)
+  const active = local.activeVehicles.filter((v) => v.id !== vehicle.id)
 
   const newState: ParkingState = {
     activeVehicles: active,
-    history: [vehicle, ...state.history],
+    history: [vehicle, ...local.history],
   }
 
   saveLocalState(newState)
 
-  try {
-    await supabase
-      .from("vehicles")
-      .update({
-        exit_timestamp: vehicle.exitTimestamp,
-        total_minutes: vehicle.totalMinutes,
-        hours_charged: vehicle.hoursCharged,
-        amount_charged: vehicle.amountCharged,
-        payment_method: vehicle.paymentMethod,
-        is_active: false,
-      })
-      .eq("id", vehicle.id)
-  } catch (err) {
-    console.error("Update sync error", err)
-  }
+  supabase
+    .from("vehicles")
+    .update({
+      exit_timestamp: vehicle.exitTimestamp,
+      total_minutes: vehicle.totalMinutes,
+      hours_charged: vehicle.hoursCharged,
+      amount_charged: vehicle.amountCharged,
+      payment_method: vehicle.paymentMethod,
+      is_active: false,
+    })
+    .eq("id", vehicle.id)
 }
 
 /* ---------------- DELETE VEHICLE ---------------- */
 
-export async function deleteVehicle(id: string) {
+export function deleteVehicle(id: string) {
 
-  const state = loadLocalState()
+  const local = loadLocalState()
 
   const newState: ParkingState = {
-    ...state,
-    activeVehicles: state.activeVehicles.filter((v) => v.id !== id),
+    ...local,
+    activeVehicles: local.activeVehicles.filter((v) => v.id !== id),
   }
 
   saveLocalState(newState)
 
-  try {
-    await supabase.from("vehicles").delete().eq("id", id)
-  } catch (err) {
-    console.error("Delete sync error", err)
-  }
+  supabase.from("vehicles").delete().eq("id", id)
 }

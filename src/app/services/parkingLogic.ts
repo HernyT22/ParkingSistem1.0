@@ -1,5 +1,6 @@
 import type { ParkingState, Vehicle, VehicleType } from "../models/parking";
 import { rates } from "../models/parking";
+import { v4 as uuidv4 } from "uuid";
 
 function getTodayWithTime(time: string | null): number {
   if (!time) {
@@ -52,7 +53,7 @@ export function createVehicle(
   }
 
   return {
-    id: String(entryTimestamp),
+    id: uuidv4(),
     originalPlate: finalPlate,
     type,
     entryTimestamp,
