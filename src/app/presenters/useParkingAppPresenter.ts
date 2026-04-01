@@ -12,6 +12,8 @@ import {
   addVehicle,
   updateVehicle,
   deleteVehicle,
+  syncFromSupabase, // 👈 Agregado para forzar la descarga
+  subscribeToDatabaseChanges, // 👈 Agregado para escuchar el tiempo real
 } from "../services/parkingStorage";
 
 export function useParkingAppPresenter() {
@@ -20,7 +22,7 @@ export function useParkingAppPresenter() {
     history: [],
   });
 
-  // Carga inicial desde localStorage (sync con Supabase en background)
+  // 1. Carga inicial y Suscripción en Tiempo Real
   useEffect(() => {
     const fetchState = async () => {
       const initial = await loadInitialState();
@@ -28,6 +30,17 @@ export function useParkingAppPresenter() {
     };
 
     fetchState();
+
+    // 🔥 NUEVO: Nos suscribimos a los cambios de la base de datos
+    const unsubscribe = subscribeToDatabaseChanges(async () => {
+      // Cuando Supabase nos avise que alguien modificó algo:
+      await syncFromSupabase(); // 1. Descargamos lo nuevo y lo guardamos en localStorage
+      const updated = await loadInitialState(); // 2. Leemos el localStorage actualizado
+      setState(updated); // 3. Forzamos a React a redibujar las tablas
+    });
+
+    // Limpiamos la conexión a Supabase cuando el usuario cierre la app
+    return () => unsubscribe();
   }, []);
 
   const { activeVehicles, history } = state;
@@ -86,7 +99,8 @@ export function useParkingAppPresenter() {
     };
 
     try {
-      updateVehicle(finalized);
+      // Ahora updateVehicle tiene un await interno (lo cambiamos en parkingStorage)
+      await updateVehicle(finalized);
 
       setState((prev) => ({
         activeVehicles: prev.activeVehicles.filter((v) => v.id !== vehicleToCheckout.id),
@@ -121,7 +135,8 @@ export function useParkingAppPresenter() {
     const vehicle = vehicleToCancel;
 
     try {
-      deleteVehicle(vehicle.id);
+      // Ahora deleteVehicle tiene un await interno
+      await deleteVehicle(vehicle.id);
 
       setState((prev) => ({
         ...prev,
@@ -155,7 +170,8 @@ export function useParkingAppPresenter() {
 
   const onClearHistoryConfirm = async () => {
     try {
-      history.forEach((v) => deleteVehicle(v.id));
+      // Agregado el Promise.all para esperar a que se borren todos de la DB correctamente
+      await Promise.all(history.map((v) => deleteVehicle(v.id)));
 
       setState((prev) => ({
         ...prev,
