@@ -1,14 +1,19 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router"
 import { useAuthPresenter } from "../presenters/useAuthPresenter"
 import { useAuth } from "../context/AuthContext"
 import { Button } from "../components/ui/button"
 import { Car, Loader2 } from "lucide-react"
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export function AuthView() {
   const p = useAuthPresenter()
   const { session, loading } = useAuth()
   const navigate = useNavigate()
+  const [frontError, setFrontError] = useState<string | null>(null)
+
+  const errorToShow = useMemo(() => frontError ?? p.error, [frontError, p.error])
 
   useEffect(() => {
     if (!loading && session) {
@@ -23,6 +28,31 @@ export function AuthView() {
         <p className="text-gray-400 text-sm">Cargando...</p>
       </div>
     )
+  }
+
+  const validateFront = () => {
+    const email = p.email.trim()
+    const password = p.password
+
+    if (!email) return "Debes ingresar un Email"
+    if (!EMAIL_REGEX.test(email)) return "Debes ingresar un Email valido"
+    if (!password) return "Debes ingresar una contraseña"
+    if (password.length < 6) return "La contraseña debe tener 6 digitos como minimo"
+    return null
+  }
+
+  const onSubmit = () => {
+    const err = validateFront()
+    if (err) {
+      setFrontError(err)
+      return
+    }
+    setFrontError(null)
+    if (p.mode === "login") {
+      p.handleLogin()
+    } else {
+      p.handleRegister()
+    }
   }
 
   return (
@@ -47,7 +77,10 @@ export function AuthView() {
             <input
               type="email"
               value={p.email}
-              onChange={(e) => p.setEmail(e.target.value)}
+              onChange={(e) => {
+                setFrontError(null)
+                p.setEmail(e.target.value)
+              }}
               placeholder="tu@email.com"
               className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             />
@@ -58,21 +91,24 @@ export function AuthView() {
             <input
               type="password"
               value={p.password}
-              onChange={(e) => p.setPassword(e.target.value)}
+              onChange={(e) => {
+                setFrontError(null)
+                p.setPassword(e.target.value)
+              }}
               placeholder="••••••••"
               className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             />
           </div>
 
-          {p.error && (
+          {errorToShow && (
             <p className="text-xs text-red-500 bg-red-50 rounded-md px-3 py-2">
-              {p.error}
+              {errorToShow}
             </p>
           )}
 
           <Button
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            onClick={p.mode === "login" ? p.handleLogin : p.handleRegister}
+            onClick={onSubmit}
             disabled={p.loading}
           >
             {p.loading ? "Cargando..." : p.mode === "login" ? "Ingresar" : "Registrarse"}

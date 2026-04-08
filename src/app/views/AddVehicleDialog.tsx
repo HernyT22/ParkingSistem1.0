@@ -34,9 +34,16 @@ export function AddVehicleDialog({ onAdd }: AddVehicleDialogProps) {
   const [tipo, setTipo] = useState(DEFAULT_VEHICLE_TYPE);
   const [open, setOpen] = useState(false);
   const [horaIngreso, setHoraIngreso] = useState("");
+  const [patenteError, setPatenteError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!patente.trim()) {
+      setPatenteError("Debes ingresar una patente");
+      return;
+    }
+
     const parsed = parseAddVehicleSubmit(patente, tipo, horaIngreso);
     if (parsed) {
       onAdd(parsed.patente, parsed.tipo, parsed.horaIngreso);
@@ -44,6 +51,7 @@ export function AddVehicleDialog({ onAdd }: AddVehicleDialogProps) {
       setPatente(reset.patente);
       setTipo(reset.tipo);
       setHoraIngreso(reset.horaIngreso);
+      setPatenteError(null);
       setOpen(false);
     }
   };
@@ -70,10 +78,18 @@ export function AddVehicleDialog({ onAdd }: AddVehicleDialogProps) {
               id="patente"
               placeholder="ABC123"
               value={patente}
-              onChange={(e) => setPatente(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setPatenteError(null);
+                setPatente(e.target.value.toUpperCase());
+              }}
               className="text-lg"
               autoComplete="off"
             />
+            {patenteError && (
+              <p className="text-xs text-red-500 bg-red-50 rounded-md px-3 py-2">
+                {patenteError}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="tipo">Tipo de Vehículo</Label>

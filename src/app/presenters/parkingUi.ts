@@ -1,4 +1,4 @@
-export interface HistoryEntryUi {
+﻿export interface HistoryEntryUi {
   patente: string;
   tipo: string;
   horaIngreso: string;

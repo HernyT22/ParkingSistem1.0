@@ -1,8 +1,8 @@
-import { useEffect } from "react"
-
+﻿import { useEffect } from "react"
 import { useNavigate } from "react-router"
+import { supabase } from "../services/supabase.client"
 
-export default function Callback() {
+export default function AuthCallback() {
   const navigate = useNavigate()
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { Card, CardContent } from "../components/ui/card";
-import type { HistoryEntryUi } from "../models/parkingUi";
+import type { HistoryEntryUi } from "../presenters/parkingUi";
 
 interface VehicleHistoryProps {
   history: HistoryEntryUi[];

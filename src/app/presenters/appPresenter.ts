@@ -1,5 +1,5 @@
 import type { Vehicle } from "../models/parking";
-import type { HistoryEntryUi } from "../models/parkingUi";
+import type { HistoryEntryUi } from "./parkingUi";
 
 export function formatTime(timestamp: number | null): string {
   if (!timestamp) return "-";

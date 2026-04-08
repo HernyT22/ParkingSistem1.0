@@ -1,4 +1,4 @@
-import { supabase } from "../../services/supabase.client"
+import { supabase } from "./supabase.client"
 import type { Vehicle, ParkingState } from "../models/parking"
 
 const ACTIVE_KEY = "activeVehicles"

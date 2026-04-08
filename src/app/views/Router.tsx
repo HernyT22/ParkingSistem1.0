@@ -4,7 +4,7 @@ import { AuthProvider } from "../context/AuthContext"
 import { ProtectedRoute } from "./ProtectedRoute"
 import { AuthView } from "./AuthView"
 import App from "./App"
-import Callback from "../auth/callback/page"
+import AuthCallback from "./AuthCallback"
 
 export function AppRouter() {
   return (
@@ -12,7 +12,7 @@ export function AppRouter() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<AuthView />} />
-          <Route path="/auth/callback" element={<Callback />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route
             path="/"
             element={
